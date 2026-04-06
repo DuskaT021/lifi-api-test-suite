@@ -6,6 +6,7 @@
  */
 
 import { APIResponse, expect } from '@playwright/test';
+import { Chain, Token } from './api-client';
 import { REQUIRED_CHAIN_FIELDS, REQUIRED_QUOTE_FIELDS, REQUIRED_TOKEN_FIELDS } from './test-data';
 
 // -- HTTP status assertions --------------------------------------------------
@@ -34,21 +35,21 @@ export function assertResponseTime(startMs: number, maxMs = 5000) {
 
 // -- Shape assertions --------------------------------------------------------
 
-export function assertTokenShape(token: Record<string, unknown>) {
+export function assertTokenShape(token: Token) {
   for (const field of REQUIRED_TOKEN_FIELDS) {
     expect(token, `Token missing field: ${field}`).toHaveProperty(field);
   }
   expect(typeof token.address).toBe('string');
-  expect((token.address as string)).toMatch(/^0x[a-fA-F0-9]{40}$/);
+  expect(token.address).toMatch(/^0x[a-fA-F0-9]{40}$/);
   expect(typeof token.symbol).toBe('string');
-  expect((token.symbol as string).length).toBeGreaterThan(0);
+  expect(token.symbol.length).toBeGreaterThan(0);
   expect(typeof token.decimals).toBe('number');
-  expect(token.decimals as number).toBeGreaterThanOrEqual(0);
+  expect(token.decimals).toBeGreaterThanOrEqual(0);
   expect(typeof token.chainId).toBe('number');
   expect(typeof token.priceUSD).toBe('string');
 }
 
-export function assertChainShape(chain: Record<string, unknown>) {
+export function assertChainShape(chain: Chain) {
   for (const field of REQUIRED_CHAIN_FIELDS) {
     expect(chain, `Chain missing field: ${field}`).toHaveProperty(field);
   }

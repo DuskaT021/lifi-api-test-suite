@@ -107,7 +107,8 @@ export class LiFiApiClient {
     if (chains) params.set('chains', chains);
 
     const response = await this.request.get(`${BASE_URL}/tokens?${params}`);
-    const data = await response.json();
+    const json = await response.json();
+    const data: Record<string, Token[]> = json.tokens ?? json;
     cache.tokens = data;
     return data;
   }
