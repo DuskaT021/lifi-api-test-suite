@@ -1,0 +1,26 @@
+{
+  "name": "lifi-api-test-suite",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LI.FI API test suite (Playwright + Postman/Newman)",
+  "scripts": {
+    "test": "playwright test",
+    "test:tokens": "playwright test playwright/tests/tokens.spec.ts",
+    "test:quote": "playwright test playwright/tests/quote.spec.ts",
+    "test:composer": "playwright test playwright/tests/composer.spec.ts",
+    "test:mcp": "playwright test playwright/tests/mcp-parity.spec.ts",
+    "test:postman": "node scripts/newman-run.js",
+    "test:postman:bail": "node scripts/newman-run.js --bail",
+    "test:postman:quote": "node scripts/newman-run.js --collection=quote",
+    "scenarios": "ts-node mcp/mcp-test-scenarios.ts",
+    "report": "playwright show-report"
+  },
+  "dependencies": {
+    "newman": "6.2.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1",
+    "ts-node": "10.9.2",
+    "typescript": "6.0.2"
+  }
+}

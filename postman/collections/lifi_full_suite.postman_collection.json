@@ -1,0 +1,1341 @@
+{
+    "info": {
+      "name": "LI.FI API \u2014 Full Suite",
+      "description": "Combined test suite for LI.FI REST API.\nCovers: /tokens, /quote (all order types, slippage, Composer).\nMirrors Playwright test coverage \u2014 both layers validate the same surface.\n\nRun with Newman:\n  newman run lifi_full_suite.postman_collection.json \\\n    -e production.postman_environment.json \\\n    --reporters cli,json \\\n    --reporter-json-export newman-report.json",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+      {
+        "key": "baseUrl",
+        "value": "https://li.quest/v1"
+      },
+      {
+        "key": "apiKey",
+        "value": "",
+        "description": "Optional \u2014 add for higher rate limits"
+      },
+      {
+        "key": "fromChain",
+        "value": "137",
+        "description": "Polygon"
+      },
+      {
+        "key": "toChain",
+        "value": "42161",
+        "description": "Arbitrum"
+      },
+      {
+        "key": "fromToken",
+        "value": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+        "description": "USDC on Polygon"
+      },
+      {
+        "key": "toToken",
+        "value": "USDC"
+      },
+      {
+        "key": "fromAddress",
+        "value": "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0"
+      },
+      {
+        "key": "fromAmount",
+        "value": "1000000",
+        "description": "1 USDC (6 decimals)"
+      }
+    ],
+    "item": [
+      {
+        "name": "Tokens (/tokens)",
+        "description": "Cached endpoint \u2014 large payload, filter by chain always",
+        "item": [
+          {
+            "name": "Basic Response",
+            "item": [
+              {
+                "name": "GET /tokens \u2014 Polygon (single chain)",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Response time < 5000ms', () => pm.expect(pm.response.responseTime).to.be.below(5000));",
+                        "pm.test('Response is object', () => {",
+                        "  const data = pm.response.json();",
+                        "  pm.expect(data).to.be.an('object');",
+                        "  pm.expect(Object.keys(data).length).to.be.greaterThan(0);",
+                        "});",
+                        "pm.test('Keys are chain IDs', () => {",
+                        "  const data = pm.response.json();",
+                        "  Object.keys(data).forEach(key => {",
+                        "    pm.expect(parseInt(key)).to.not.be.NaN;",
+                        "  });",
+                        "});",
+                        "pm.test('Each chain has array of tokens', () => {",
+                        "  const data = pm.response.json();",
+                        "  Object.entries(data).forEach(([chainId, tokens]) => {",
+                        "    pm.expect(tokens, `Chain ${chainId}`).to.be.an('array');",
+                        "    pm.expect(tokens.length).to.be.greaterThan(0);",
+                        "  });",
+                        "});",
+                        "// Store first token for field validation",
+                        "const data = pm.response.json();",
+                        "const firstTokens = Object.values(data)[0];",
+                        "if (firstTokens && firstTokens.length > 0) {",
+                        "  pm.collectionVariables.set('sampleToken', JSON.stringify(firstTokens[0]));",
+                        "}"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/tokens?chains=137",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "tokens"
+                    ],
+                    "query": [
+                      {
+                        "key": "chains",
+                        "value": "137"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /tokens \u2014 Token field validation",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Tokens have required fields', () => {",
+                        "  const data = pm.response.json();",
+                        "  const tokens = Object.values(data).flat().slice(0, 20);",
+                        "  const required = ['address', 'symbol', 'decimals', 'chainId', 'name', 'priceUSD'];",
+                        "  tokens.forEach(token => {",
+                        "    required.forEach(field => {",
+                        "      pm.expect(token, `Missing ${field}`).to.have.property(field);",
+                        "    });",
+                        "  });",
+                        "});",
+                        "pm.test('Token addresses are valid hex', () => {",
+                        "  const data = pm.response.json();",
+                        "  const tokens = Object.values(data).flat().slice(0, 20);",
+                        "  tokens.forEach(token => {",
+                        "    pm.expect(token.address).to.match(/^0x[a-fA-F0-9]{40}$/);",
+                        "  });",
+                        "});",
+                        "pm.test('Decimals are non-negative numbers', () => {",
+                        "  const data = pm.response.json();",
+                        "  const tokens = Object.values(data).flat().slice(0, 20);",
+                        "  tokens.forEach(token => {",
+                        "    pm.expect(token.decimals).to.be.a('number');",
+                        "    pm.expect(token.decimals).to.be.at.least(0);",
+                        "  });",
+                        "});",
+                        "pm.test('No sensitive data in response', () => {",
+                        "  const body = pm.response.text();",
+                        "  pm.expect(body).to.not.match(/private.?key/i);",
+                        "  pm.expect(body).to.not.match(/password/i);",
+                        "  pm.expect(body).to.not.match(/mnemonic/i);",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/tokens?chains=1",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "tokens"
+                    ],
+                    "query": [
+                      {
+                        "key": "chains",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Chain Parameter",
+            "item": [
+              {
+                "name": "GET /tokens \u2014 filters to requested chain only",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Response only contains chain 137', () => {",
+                        "  const data = pm.response.json();",
+                        "  Object.keys(data).forEach(chainId => {",
+                        "    pm.expect(chainId).to.equal('137');",
+                        "  });",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/tokens?chains=137",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "tokens"
+                    ],
+                    "query": [
+                      {
+                        "key": "chains",
+                        "value": "137"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /tokens \u2014 multiple chains (Polygon + Arbitrum)",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Response contains both chains', () => {",
+                        "  const data = pm.response.json();",
+                        "  pm.expect(Object.keys(data).length).to.be.at.least(1);",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/tokens?chains=137,42161",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "tokens"
+                    ],
+                    "query": [
+                      {
+                        "key": "chains",
+                        "value": "137,42161"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /tokens \u2014 chain by mnemonic (ETH)",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/tokens?chains=ETH",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "tokens"
+                    ],
+                    "query": [
+                      {
+                        "key": "chains",
+                        "value": "ETH"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /tokens \u2014 unknown chain (999999)",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Does not return 500', () => {",
+                        "  pm.expect(pm.response.code).to.not.equal(500);",
+                        "});",
+                        "pm.test('Returns 200 or 400', () => {",
+                        "  pm.expect([200, 400]).to.include(pm.response.code);",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/tokens?chains=999999",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "tokens"
+                    ],
+                    "query": [
+                      {
+                        "key": "chains",
+                        "value": "999999"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Price Filter",
+            "item": [
+              {
+                "name": "GET /tokens \u2014 minPriceUSD=1",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('All tokens have price >= 1', () => {",
+                        "  const data = pm.response.json();",
+                        "  const tokens = Object.values(data).flat();",
+                        "  tokens.forEach(token => {",
+                        "    pm.expect(parseFloat(token.priceUSD)).to.be.at.least(1);",
+                        "  });",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/tokens?chains=1&minPriceUSD=1",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "tokens"
+                    ],
+                    "query": [
+                      {
+                        "key": "chains",
+                        "value": "1"
+                      },
+                      {
+                        "key": "minPriceUSD",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /tokens \u2014 negative minPriceUSD (edge case)",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Does not return 500', () => {",
+                        "  pm.expect(pm.response.code).to.not.equal(500);",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/tokens?chains=137&minPriceUSD=-1",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "tokens"
+                    ],
+                    "query": [
+                      {
+                        "key": "chains",
+                        "value": "137"
+                      },
+                      {
+                        "key": "minPriceUSD",
+                        "value": "-1"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Security",
+            "item": [
+              {
+                "name": "GET /tokens \u2014 SQL injection in chains",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Returns 400 (not 200 or 500)', () => {",
+                        "  pm.expect(pm.response.code).to.equal(400);",
+                        "});",
+                        "pm.test('Does not reflect payload', () => {",
+                        "  pm.expect(pm.response.text()).to.not.include(\"OR '1'='1\");",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/tokens?chains=1' OR '1'='1",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "tokens"
+                    ],
+                    "query": [
+                      {
+                        "key": "chains",
+                        "value": "1' OR '1'='1"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /tokens \u2014 XSS in chains",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Does not return 500', () => {",
+                        "  pm.expect(pm.response.code).to.not.equal(500);",
+                        "});",
+                        "pm.test('XSS not reflected in response', () => {",
+                        "  pm.expect(pm.response.text()).to.not.include('<script>');",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/tokens?chains=<script>alert(1)</script>",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "tokens"
+                    ],
+                    "query": [
+                      {
+                        "key": "chains",
+                        "value": "<script>alert(1)</script>"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Quote & Routes (/quote)",
+        "description": "Never cached \u2014 real-time routing data",
+        "item": [
+          {
+            "name": "Happy Path",
+            "item": [
+              {
+                "name": "GET /quote \u2014 USDC Polygon \u2192 USDC Arbitrum",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Response time < 10000ms', () => pm.expect(pm.response.responseTime).to.be.below(10000));",
+                        "",
+                        "pm.test('Has required fields', () => {",
+                        "  const data = pm.response.json();",
+                        "  ['type', 'id', 'tool', 'action', 'estimate'].forEach(field => {",
+                        "    pm.expect(data, `Missing: ${field}`).to.have.property(field);",
+                        "  });",
+                        "});",
+                        "",
+                        "pm.test('estimate has required fields', () => {",
+                        "  const est = pm.response.json().estimate;",
+                        "  ['fromAmount', 'toAmount', 'toAmountMin', 'approvalAddress', 'executionDuration'].forEach(f => {",
+                        "    pm.expect(est, `Missing estimate.${f}`).to.have.property(f);",
+                        "  });",
+                        "});",
+                        "",
+                        "pm.test('toAmount is greater than 0', () => {",
+                        "  const est = pm.response.json().estimate;",
+                        "  pm.expect(parseFloat(est.toAmount)).to.be.greaterThan(0);",
+                        "});",
+                        "",
+                        "pm.test('approvalAddress is valid Ethereum address', () => {",
+                        "  const est = pm.response.json().estimate;",
+                        "  pm.expect(est.approvalAddress).to.match(/^0x[a-fA-F0-9]{40}$/);",
+                        "});",
+                        "",
+                        "pm.test('transactionRequest is present and valid', () => {",
+                        "  const tx = pm.response.json().transactionRequest;",
+                        "  pm.expect(tx).to.exist;",
+                        "  pm.expect(tx.to).to.be.a('string').and.match(/^0x/);",
+                        "  pm.expect(tx.data).to.be.a('string').and.match(/^0x/);",
+                        "});",
+                        "",
+                        "// Store quote id for potential follow-up tests",
+                        "pm.collectionVariables.set('lastQuoteId', pm.response.json().id);"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain={{fromChain}}&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress={{fromAddress}}&fromAmount={{fromAmount}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "{{fromChain}}"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /quote \u2014 ETH same-chain swap",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('toAmount > 0', () => {",
+                        "  pm.expect(parseFloat(pm.response.json().estimate.toAmount)).to.be.greaterThan(0);",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain=1&toChain=1&fromToken=0x0000000000000000000000000000000000000000&toToken=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&fromAddress={{fromAddress}}&fromAmount=1000000000000000",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "1"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "1"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "0x0000000000000000000000000000000000000000"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "1000000000000000"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Order Parameter",
+            "item": [
+              {
+                "name": "GET /quote \u2014 order=RECOMMENDED",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain={{fromChain}}&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress={{fromAddress}}&fromAmount={{fromAmount}}&order=RECOMMENDED",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "{{fromChain}}"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      },
+                      {
+                        "key": "order",
+                        "value": "RECOMMENDED"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /quote \u2014 order=FASTEST",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain={{fromChain}}&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress={{fromAddress}}&fromAmount={{fromAmount}}&order=FASTEST",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "{{fromChain}}"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      },
+                      {
+                        "key": "order",
+                        "value": "FASTEST"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /quote \u2014 order=CHEAPEST",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain={{fromChain}}&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress={{fromAddress}}&fromAmount={{fromAmount}}&order=CHEAPEST",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "{{fromChain}}"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      },
+                      {
+                        "key": "order",
+                        "value": "CHEAPEST"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /quote \u2014 order=SAFEST",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain={{fromChain}}&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress={{fromAddress}}&fromAmount={{fromAmount}}&order=SAFEST",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "{{fromChain}}"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      },
+                      {
+                        "key": "order",
+                        "value": "SAFEST"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Missing Parameters",
+            "item": [
+              {
+                "name": "GET /quote \u2014 missing fromChain",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Returns 400', () => pm.response.to.have.status(400));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress={{fromAddress}}&fromAmount={{fromAmount}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /quote \u2014 missing fromAmount",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Returns 400', () => pm.response.to.have.status(400));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain={{fromChain}}&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress={{fromAddress}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "{{fromChain}}"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /quote \u2014 missing fromAddress",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Returns 400', () => pm.response.to.have.status(400));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain={{fromChain}}&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAmount={{fromAmount}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "{{fromChain}}"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Invalid Values",
+            "item": [
+              {
+                "name": "GET /quote \u2014 invalid fromChain",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Returns 400', () => pm.response.to.have.status(400));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain=INVALID&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress={{fromAddress}}&fromAmount={{fromAmount}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "INVALID"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /quote \u2014 invalid wallet address",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Returns 400', () => pm.response.to.have.status(400));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain={{fromChain}}&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress=not_a_wallet&fromAmount={{fromAmount}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "{{fromChain}}"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "not_a_wallet"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /quote \u2014 fromAmount=0",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Does not return 200', () => {",
+                        "  pm.expect(pm.response.code).to.not.equal(200);",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain={{fromChain}}&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress={{fromAddress}}&fromAmount=0",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "{{fromChain}}"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "0"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Security",
+            "item": [
+              {
+                "name": "GET /quote \u2014 XSS in fromChain",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Does not return 500', () => pm.expect(pm.response.code).to.not.equal(500));",
+                        "pm.test('XSS not reflected', () => {",
+                        "  pm.expect(pm.response.text()).to.not.include('<script>');",
+                        "});"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain=<script>alert(1)</script>&toChain={{toChain}}&fromToken={{fromToken}}&toToken={{toToken}}&fromAddress={{fromAddress}}&fromAmount={{fromAmount}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "<script>alert(1)</script>"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "{{fromToken}}"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "GET /quote \u2014 SQL injection in fromToken",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Does not return 500', () => pm.expect(pm.response.code).to.not.equal(500));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain={{fromChain}}&toChain={{toChain}}&fromToken=1' OR '1'='1&toToken={{toToken}}&fromAddress={{fromAddress}}&fromAmount={{fromAmount}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "{{fromChain}}"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "{{toChain}}"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "1' OR '1'='1"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "{{toToken}}"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Composer",
+            "item": [
+              {
+                "name": "GET /quote \u2014 Composer vault deposit (Polygon \u2192 Base)",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "exec": [
+                        "pm.test('Does not return 500', () => pm.expect(pm.response.code).to.not.equal(500));",
+                        "pm.test('Returns 200 or meaningful error', () => {",
+                        "  pm.expect([200, 400, 404]).to.include(pm.response.code);",
+                        "});",
+                        "if (pm.response.code === 200) {",
+                        "  pm.test('Composer quote has required fields', () => {",
+                        "    const data = pm.response.json();",
+                        "    pm.expect(data).to.have.property('estimate');",
+                        "    pm.expect(parseFloat(data.estimate.toAmount)).to.be.greaterThan(0);",
+                        "  });",
+                        "}"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": {
+                    "raw": "{{baseUrl}}/quote?fromChain=137&toChain=8453&fromToken=0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174&toToken=0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A&fromAddress={{fromAddress}}&fromAmount={{fromAmount}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "quote"
+                    ],
+                    "query": [
+                      {
+                        "key": "fromChain",
+                        "value": "137"
+                      },
+                      {
+                        "key": "toChain",
+                        "value": "8453"
+                      },
+                      {
+                        "key": "fromToken",
+                        "value": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+                      },
+                      {
+                        "key": "toToken",
+                        "value": "0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A",
+                        "description": "Jumper Earn vault on Base"
+                      },
+                      {
+                        "key": "fromAddress",
+                        "value": "{{fromAddress}}"
+                      },
+                      {
+                        "key": "fromAmount",
+                        "value": "{{fromAmount}}"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }

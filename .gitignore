@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Local env files (commit .env.example only)
+.env
+.env.local
+.env.*.local
+
+# Newman reports (large; regenerated on each run)
+newman-reports/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage (if coverage tooling is added later)
+coverage/
+
+# TypeScript build output (if a compile/build step is added later)
+dist/
+*.tsbuildinfo
+
+# OS
+.DS_Store
+
+# --- Proposed: uncomment if needed ---
+# .idea/                 # JetBrains
+# .vscode/               # VS Code local state (or commit settings you want shared)
+# *.tgz                  # npm pack
+# .eslintcache
+# .cache/                # generic tool cache (if not already covered)
