@@ -16,6 +16,7 @@
     "report": "playwright show-report"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.82.0",
     "newman": "6.2.2"
   },
   "devDependencies": {
