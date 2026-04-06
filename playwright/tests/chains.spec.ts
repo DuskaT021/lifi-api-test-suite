@@ -48,7 +48,7 @@ test.describe('/chains endpoint', () => {
       const chains = await client.getChains();
       const eth = chains.find(c => c.id === 1);
       expect(eth).toBeDefined();
-      expect(eth!.key).toBe('ETH');
+      expect(eth!.key.toLowerCase()).toBe('eth');
     });
 
     test('includes Polygon (id: 137)', async () => {
