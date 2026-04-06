@@ -1,5 +1,7 @@
 # LI.FI API Testing Suite (2026)
 
+![API Tests](https://github.com/DuskaT021/lifi-api-test-suite/actions/workflows/api-tests.yml/badge.svg)
+
 A comprehensive API test suite for [LI.FI](https://li.fi) endpoints, built with **Playwright + TypeScript** and **Postman/Newman**, with **MCP server parity tests** and **AI-assisted scenario generation**.
 
 ---
