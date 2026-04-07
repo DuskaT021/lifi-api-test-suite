@@ -27,7 +27,6 @@ A comprehensive API test suite for [LI.FI](https://li.fi) endpoints, built with 
 | `GET /tools` | tools.spec.ts | Cached |
 | `GET /connections` | connections.spec.ts | Not cached — param-dependent |
 | `GET /quote` | quote.spec.ts | Never cached — real-time routing |
-| `POST /advanced/routes` | routes.spec.ts | Never cached |
 | `GET /quote` (Composer) | composer.spec.ts | Composer deposit flows |
 | MCP tools | mcp-parity.spec.ts | get-chains, get-quote, get-tokens parity |
 
@@ -81,11 +80,11 @@ for the `/quote` endpoint — unusual chain pairs, cross-ecosystem swaps, extrem
 amounts, and more.
 
 ```bash
-npx ts-node mcp/mcp-test-scenarios.ts
+npm run scenarios
 ```
 
 Output is saved to `mcp/generated-scenarios.json` and can be imported
-into the Playwright test suite.
+into the Playwright test suite. Requires `ANTHROPIC_API_KEY` in `.env`.
 
 <p align="center">
   <video src="https://github.com/user-attachments/assets/350adddb-7990-4c81-8bbf-77f2a0227414" width="80%" controls></video>
@@ -101,17 +100,22 @@ npm install
 npx playwright install --with-deps chromium
 ```
 
-Optional: add your LI.FI API key for higher rate limits:
+Copy the environment template and fill in your keys:
 ```bash
-export LIFI_API_KEY=your_key_here
+cp .env.example .env
 ```
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `LIFI_API_KEY` | No | Increases rate limits (200 req/2h → 200 req/min) |
+| `ANTHROPIC_API_KEY` | Only for `npm run scenarios` | Claude-assisted scenario generation |
 
 ---
 
 ## Running tests
 
 ```bash
-# All tests
+# All Playwright tests
 npm test
 
 # Single suite
@@ -123,6 +127,12 @@ npm run test:mcp
 # Postman collections via Newman
 npm run test:postman
 npm run test:postman:quote
+
+# AI scenario generation
+npm run scenarios
+
+# Type-check without running tests
+npx tsc --noEmit
 
 # View HTML report
 npm run report
@@ -144,7 +154,7 @@ Results are uploaded as artifacts and available in the Actions tab.
 ## Project structure
 
 ```
-lifi-api-testing/
+lifi-api-test-suite/
 ├── playwright/
 │   ├── tests/
 │   │   ├── tokens.spec.ts
@@ -155,19 +165,26 @@ lifi-api-testing/
 │   │   ├── composer.spec.ts
 │   │   └── mcp-parity.spec.ts
 │   └── helpers/
-│       ├── api-client.ts      # Centralised client with caching
-│       ├── assertions.ts      # Shared custom assertions
-│       └── test-data.ts       # Chain IDs, token addresses, test wallets
+│       ├── api-client.ts       # Centralised client with caching + type definitions
+│       ├── assertions.ts       # Shared custom assertions
+│       └── test-data.ts        # Chain IDs, token addresses, test wallets
 ├── postman/
 │   ├── collections/
 │   └── environments/
 ├── mcp/
-│   ├── mcp-test-scenarios.ts  # AI-assisted scenario generator
+│   ├── mcp-test-scenarios.ts   # AI-assisted scenario generator
 │   └── generated-scenarios.json
+├── scripts/
+│   └── newman-run.js           # Newman CLI runner
 ├── .github/workflows/
 │   └── api-tests.yml
+├── .vscode/
+│   ├── settings.json
+│   └── extensions.json
 ├── docs/
 │   └── TEST-PLAN.md
+├── AGENTS.md                   # Context for AI agents and reviewers
 ├── playwright.config.ts
+├── .env.example
 └── package.json
 ```
