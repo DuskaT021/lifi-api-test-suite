@@ -71,7 +71,8 @@ Respond ONLY with a valid JSON array, no markdown, no explanation:
   if (content.type !== 'text') throw new Error('Unexpected response type');
 
   try {
-    const scenarios = JSON.parse(content.text) as GeneratedScenario[];
+    const stripped = content.text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const scenarios = JSON.parse(stripped) as GeneratedScenario[];
     return scenarios;
   } catch {
     console.error('Failed to parse Claude response:', content.text);
