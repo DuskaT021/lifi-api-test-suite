@@ -1,0 +1,17 @@
+{
+    "cSpell.words": [
+        "lifi"
+    ],
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2,
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "files.exclude": {
+        "node_modules": true,
+        "dist": true,
+        "playwright-report": true,
+        "newman-reports": true,
+        "test-results": true
+    }
+}

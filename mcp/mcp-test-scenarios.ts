@@ -13,8 +13,8 @@
  *
  * Output: A JSON file of generated test cases that Playwright can consume.
  */
-
 import Anthropic from '@anthropic-ai/sdk';
+import 'dotenv/config';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -84,7 +84,7 @@ async function main() {
 
   const scenarios = await generateQuoteScenarios();
 
-  const outputPath = path.join(__dirname, 'generated-scenarios.json');
+  const outputPath = path.join(process.cwd(), 'mcp', 'generated-scenarios.json');
   fs.writeFileSync(outputPath, JSON.stringify(scenarios, null, 2));
 
   console.log(`Generated ${scenarios.length} scenarios`);

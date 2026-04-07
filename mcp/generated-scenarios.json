@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Micro amount cross-chain USDC swap",
+    "fromChain": "1",
+    "toChain": "137",
+    "fromToken": "USDC",
+    "toToken": "USDC",
+    "fromAmount": "1",
+    "expectedBehaviour": "no_route",
+    "reason": "Testing minimum viable amount (0.000001 USDC) - likely below gas cost threshold"
+  },
+  {
+    "name": "Whale swap ETH to BNB cross-ecosystem",
+    "fromChain": "1",
+    "toChain": "56",
+    "fromToken": "0x0000000000000000000000000000000000000000",
+    "toToken": "BNB",
+    "fromAmount": "10000000000000000000000",
+    "expectedBehaviour": "valid_route",
+    "reason": "Large amount (10,000 ETH) cross-ecosystem swap testing liquidity limits"
+  },
+  {
+    "name": "Same chain ETH to USDT on Ethereum",
+    "fromChain": "1",
+    "toChain": "1",
+    "fromToken": "0x0000000000000000000000000000000000000000",
+    "toToken": "USDT",
+    "fromAmount": "500000000000000000",
+    "expectedBehaviour": "valid_route",
+    "reason": "Same-chain swap should use DEX aggregation rather than bridging"
+  },
+  {
+    "name": "Stablecoin to native token on L2",
+    "fromChain": "42161",
+    "toChain": "10",
+    "fromToken": "USDC",
+    "toToken": "0x0000000000000000000000000000000000000000",
+    "fromAmount": "1000000000",
+    "expectedBehaviour": "valid_route",
+    "reason": "L2 to L2 swap with stablecoin to native ETH conversion"
+  },
+  {
+    "name": "Exotic chain pair Base to Avalanche",
+    "fromChain": "8453",
+    "toChain": "43114",
+    "fromToken": "USDC",
+    "toToken": "AVAX",
+    "fromAmount": "50000000",
+    "expectedBehaviour": "valid_route",
+    "reason": "Testing routing between newer chain (Base) and established chain (Avalanche)"
+  },
+  {
+    "name": "DAI to MATIC cross-chain small amount",
+    "fromChain": "1",
+    "toChain": "137",
+    "fromToken": "DAI",
+    "toToken": "MATIC",
+    "fromAmount": "5000000000000000000",
+    "expectedBehaviour": "valid_route",
+    "reason": "Testing non-USDC stablecoin to native token conversion across chains"
+  },
+  {
+    "name": "Ultra high value USDT swap BSC to Arbitrum",
+    "fromChain": "56",
+    "toChain": "42161",
+    "fromToken": "USDT",
+    "toToken": "USDC",
+    "fromAmount": "100000000000000",
+    "expectedBehaviour": "no_route",
+    "reason": "Extremely large amount (100M USDT) testing maximum swap limits and liquidity"
+  },
+  {
+    "name": "Native BNB to ETH cross-ecosystem",
+    "fromChain": "56",
+    "toChain": "1",
+    "fromToken": "BNB",
+    "toToken": "0x0000000000000000000000000000000000000000",
+    "fromAmount": "2000000000000000000",
+    "expectedBehaviour": "valid_route",
+    "reason": "Native to native token swap across different blockchain ecosystems"
+  }
+]
