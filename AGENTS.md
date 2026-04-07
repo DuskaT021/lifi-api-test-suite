@@ -72,9 +72,29 @@ Cache lives in `LiFiApiClient` for the duration of a test run only.
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `LIFI_API_KEY` | No | Increases rate limits (200 req/2h → 200 req/min) |
-| `ANTHROPIC_API_KEY` | Only for `npm run scenarios` | Claude-assisted test scenario generation |
+| `ANTHROPIC_API_KEY` | No | Enables live LLM scenario generation (`npm run scenarios`); falls back to `generated-scenarios.json` if absent or on failure |
+| `LLM_PROVIDER` | No | Selects which LLM provider to use (default: `anthropic`). See `mcp/llm-provider.ts` for supported values |
 
 Copy `.env.example` to `.env` and fill in values. Neither key is required to run the test suite.
+
+---
+
+## LLM provider abstraction (`mcp/llm-provider.ts`)
+
+`npm run scenarios` uses a provider-agnostic interface so the underlying LLM can be swapped without touching scenario logic:
+
+- **`LLMProvider` interface** — single method `generateJSON(prompt): Promise<string>`
+- **`AnthropicProvider`** — current default, wraps `@anthropic-ai/sdk`
+- **`createProvider(name)`** — factory selected by `LLM_PROVIDER` env var
+
+To add a new provider (e.g. OpenAI):
+1. Create a class implementing `LLMProvider` in `mcp/llm-provider.ts`
+2. Add a `case` for it in `createProvider()`
+3. Set `LLM_PROVIDER=openai` in your `.env`
+
+### Fallback behaviour
+
+If `generateJSON` fails for **any** reason — bad API key, network error, rate limit, malformed response, or all scenarios failing validation — the script automatically falls back to `mcp/generated-scenarios.json` and logs a clear warning. The script **never exits with a non-zero code** due to an LLM failure.
 
 ---
 
@@ -99,5 +119,6 @@ npx tsc --noEmit              # type-check without running tests
 | `postman/collections/lifi_full_suite.postman_collection.json` | Newman test collection |
 | `postman/environments/production.postman_environment.json` | Newman environment (base URL, test wallet) |
 | `scripts/newman-run.js` | Newman CLI runner — writes reports to `newman-reports/` |
-| `mcp/mcp-test-scenarios.ts` | Claude-assisted edge case generator for `/quote` |
+| `mcp/mcp-test-scenarios.ts` | LLM-assisted edge case generator for `/quote` (with fallback) |
+| `mcp/llm-provider.ts` | `LLMProvider` interface + `AnthropicProvider` + `createProvider()` factory |
 | `.github/workflows/api-tests.yml` | CI — runs on PR, push to main, daily at 08:00 UTC |
