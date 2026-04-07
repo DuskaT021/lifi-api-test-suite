@@ -87,6 +87,11 @@ npx ts-node mcp/mcp-test-scenarios.ts
 Output is saved to `mcp/generated-scenarios.json` and can be imported
 into the Playwright test suite.
 
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/350adddb-7990-4c81-8bbf-77f2a0227414" width="80%" controls></video>
+</p>
+
+
 ---
 
 ## Setup
