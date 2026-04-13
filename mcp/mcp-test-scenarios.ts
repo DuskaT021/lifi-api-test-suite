@@ -11,7 +11,8 @@
  * Usage:
  *   npx ts-node mcp/mcp-test-scenarios.ts
  *
- * Output: A JSON file of generated test cases that Playwright can consume.
+ * Output: A JSON file of generated test cases that Playwright can consume via
+ *         `playwright/helpers/agentic-scenarios.ts` → `getAgentScenarios(endpoint)`.
  */
 
 import 'dotenv/config';
@@ -21,36 +22,62 @@ import { createProvider } from './llm-provider';
 
 // -- Types --------------------------------------------------------------------
 
+/** Allowed API endpoints that agentic scenarios can target. */
+export type ScenarioEndpoint = '/quote' | '/connections' | '/tokens' | '/chains' | '/tools';
+
+/** Describes the expected outcome of running a scenario. */
+export type ScenarioBehaviour = 'valid_route' | 'no_route' | 'error' | 'schema_violation';
+
 export interface GeneratedScenario {
+  /** Human-readable test name shown in the Playwright report. */
   name: string;
-  fromChain: string;
-  toChain: string;
-  fromToken: string;
-  toToken: string;
-  fromAmount: string;
-  expectedBehaviour: 'valid_route' | 'no_route' | 'error';
-  reason: string;
+  /** Target API endpoint, e.g. "/quote" or "/connections". */
+  endpoint: ScenarioEndpoint;
+  /** Query/body parameters passed to the endpoint. All values are strings. */
+  params: Record<string, string>;
+  /** HTTP status codes the test should accept as valid outcomes. */
+  expectedStatus: number[];
+  /** Expected logical behaviour of the API for this scenario. */
+  expectedBehaviour: ScenarioBehaviour;
+  /** Human-readable explanation of why this scenario is interesting. */
+  notes: string;
 }
 
 // -- Validation ---------------------------------------------------------------
+
+const ALLOWED_ENDPOINTS: readonly ScenarioEndpoint[] = [
+  '/quote', '/connections', '/tokens', '/chains', '/tools',
+];
+
+const ALLOWED_BEHAVIOURS: readonly ScenarioBehaviour[] = [
+  'valid_route', 'no_route', 'error', 'schema_violation',
+];
 
 /** Type guard — returns true only when obj satisfies every GeneratedScenario field. */
 export function isValidScenario(obj: unknown): obj is GeneratedScenario {
   if (obj === null || obj === undefined || typeof obj !== 'object') return false;
   const s = obj as Record<string, unknown>;
 
-  const requiredStrings: Array<keyof GeneratedScenario> = [
-    'name', 'fromChain', 'toChain', 'fromToken', 'toToken', 'fromAmount', 'reason',
-  ];
-  for (const field of requiredStrings) {
-    if (typeof s[field] !== 'string') return false;
-  }
+  // name must be a non-empty string
+  if (typeof s.name !== 'string' || s.name.length === 0) return false;
 
-  return (
-    s.expectedBehaviour === 'valid_route' ||
-    s.expectedBehaviour === 'no_route' ||
-    s.expectedBehaviour === 'error'
-  );
+  // endpoint must be one of the allowed values
+  if (!ALLOWED_ENDPOINTS.includes(s.endpoint as ScenarioEndpoint)) return false;
+
+  // params must be a non-null, non-array object
+  if (typeof s.params !== 'object' || s.params === null || Array.isArray(s.params)) return false;
+
+  // expectedStatus must be a non-empty array of numbers
+  if (!Array.isArray(s.expectedStatus) || s.expectedStatus.length === 0) return false;
+  if (!(s.expectedStatus as unknown[]).every(code => typeof code === 'number')) return false;
+
+  // expectedBehaviour must be one of the allowed values
+  if (!ALLOWED_BEHAVIOURS.includes(s.expectedBehaviour as ScenarioBehaviour)) return false;
+
+  // notes must be a string
+  if (typeof s.notes !== 'string') return false;
+
+  return true;
 }
 
 // -- Retry with backoff -------------------------------------------------------
@@ -91,35 +118,44 @@ function loadFallbackScenarios(): GeneratedScenario[] {
 
 // -- Prompt -------------------------------------------------------------------
 
-const PROMPT = `You are a QA engineer testing the LI.FI cross-chain swap API.
+const PROMPT = `You are a QA engineer testing the LI.FI cross-chain swap REST API (https://li.quest/v1).
 
 LI.FI supports swaps across 60+ chains including Ethereum (1), Polygon (137),
 Arbitrum (42161), Optimism (10), Base (8453), BSC (56), Avalanche (43114).
 
 Common token symbols: USDC, USDT, DAI, ETH, MATIC, BNB, AVAX.
 Native ETH address: 0x0000000000000000000000000000000000000000
+Test wallet address: 0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0
 
-Generate exactly 8 diverse edge case test scenarios for the /quote endpoint.
-Mix of: unusual chain pairs, cross-ecosystem swaps, high/low amounts,
-same-chain swaps, stablecoin to native token, native to stablecoin.
+Generate exactly 12 diverse test scenarios spread across these endpoints:
+  /quote, /connections, /tokens, /chains, /tools
+
+Requirements:
+- At least 5 scenarios for /quote (positive and negative)
+- At least 3 scenarios for /connections (positive and negative)
+- At least 1 scenario each for /tokens, /chains, /tools
+- Include happy path cases (expectedStatus [200])
+- Include negative/error cases with invalid params (expectedStatus [400, 422])
+- Include extreme values (very large amounts, unknown chain IDs, malformed tokens)
+- /quote scenarios MUST include fromAddress "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0" in params
+
+Allowed expectedBehaviour values: "valid_route", "no_route", "error", "schema_violation"
 
 Respond ONLY with a valid JSON array, no markdown, no explanation:
 [
   {
     "name": "descriptive test name",
-    "fromChain": "chain id as string",
-    "toChain": "chain id as string",
-    "fromToken": "token symbol or address",
-    "toToken": "token symbol or address",
-    "fromAmount": "amount in smallest unit as string",
-    "expectedBehaviour": "valid_route" | "no_route" | "error",
-    "reason": "why this is an interesting edge case"
+    "endpoint": "/quote",
+    "params": { "fromChain": "137", "toChain": "42161", "fromToken": "USDC", "toToken": "USDC", "fromAddress": "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0", "fromAmount": "1000000" },
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "why this is an interesting edge case"
   }
 ]`;
 
 // -- Core generation ----------------------------------------------------------
 
-async function generateQuoteScenarios(): Promise<GeneratedScenario[]> {
+async function generateScenarios(): Promise<GeneratedScenario[]> {
   const providerName = process.env.LLM_PROVIDER ?? 'anthropic';
   const provider = createProvider(providerName);
 
@@ -152,7 +188,7 @@ async function main() {
   let scenarios: GeneratedScenario[];
 
   try {
-    scenarios = await generateQuoteScenarios();
+    scenarios = await generateScenarios();
     console.log(`Generated ${scenarios.length} scenario(s) via LLM.`);
   } catch (err) {
     console.warn(
@@ -177,8 +213,9 @@ async function main() {
   console.log(`Saved to: ${outputPath}`);
   console.log('\nScenarios:');
   for (const s of scenarios) {
-    console.log(`  [${s.expectedBehaviour}] ${s.name}`);
-    console.log(`    Reason: ${s.reason}`);
+    console.log(`  [${s.endpoint}] [${s.expectedBehaviour}] ${s.name}`);
+    console.log(`    Expected status: ${s.expectedStatus.join(', ')}`);
+    console.log(`    Notes: ${s.notes}`);
   }
 }
 
