@@ -51,7 +51,15 @@ export function getAgentScenarios(endpoint: ScenarioEndpoint): GeneratedScenario
 
   let parsed: unknown[];
   try {
-    parsed = JSON.parse(raw) as unknown[];
+    const json = JSON.parse(raw) as unknown;
+    if (!Array.isArray(json)) {
+      console.warn(
+        `[agentic-scenarios] Warning: ${SCENARIOS_PATH} does not contain a JSON array. ` +
+        'Agentic scenario tests will be skipped.'
+      );
+      return [];
+    }
+    parsed = json;
   } catch (err) {
     console.warn(
       `[agentic-scenarios] Warning: failed to parse ${SCENARIOS_PATH} — ` +

@@ -64,8 +64,9 @@ export function isValidScenario(obj: unknown): obj is GeneratedScenario {
   // endpoint must be one of the allowed values
   if (!ALLOWED_ENDPOINTS.includes(s.endpoint as ScenarioEndpoint)) return false;
 
-  // params must be a non-null, non-array object
+  // params must be a non-null, non-array object with string values
   if (typeof s.params !== 'object' || s.params === null || Array.isArray(s.params)) return false;
+  if (!Object.values(s.params as object).every(v => typeof v === 'string')) return false;
 
   // expectedStatus must be a non-empty array of numbers
   if (!Array.isArray(s.expectedStatus) || s.expectedStatus.length === 0) return false;
