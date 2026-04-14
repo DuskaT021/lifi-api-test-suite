@@ -81,7 +81,7 @@ Endpoints are divided into two categories based on data freshness requirements:
 | Environment | Base URL | Notes |
 |-------------|----------|-------|
 | Production | `https://li.quest/v1` | All tests run here by default |
-| Staging | `https://staging.li.quest/v1` | Available for pre-release validation |
+| Staging | `https://staging.li.quest/v1` | Placeholder configured in Postman env until staging access is granted |
 
 ---
 
@@ -145,6 +145,31 @@ relying solely on manually authored test cases.
 4. Playwright tests import `getAgentScenarios(endpoint)` from
    `playwright/helpers/agentic-scenarios.ts` to load the relevant subset.
 
+### Postman/Newman parity
+
+Postman collection folders now include deterministic coverage for:
+- `/tokens`
+- `/quote`
+- `/connections`
+- `/chains`
+- `/tools`
+
+The collection also includes an `Agentic Scenarios` folder that consumes
+iteration data generated from `mcp/generated-scenarios.json`.
+
+Generate and run agentic Postman tests:
+```bash
+npm run postman:data:agentic
+npm run test:postman:agentic
+```
+
+Run endpoint-specific Postman folders:
+```bash
+npm run test:postman:connections
+npm run test:postman:chains
+npm run test:postman:tools
+```
+
 ### Scenario schema
 
 | Field | Type | Description |
@@ -166,6 +191,11 @@ To regenerate with fresh LLM output:
 ```bash
 export ANTHROPIC_API_KEY=<your-key>
 npm run scenarios
+```
+
+Staging run (uses `postman/environments/staging.postman_environment.json`):
+```bash
+node scripts/newman-run.js --env=staging
 ```
 
 ### Generated scenarios cover

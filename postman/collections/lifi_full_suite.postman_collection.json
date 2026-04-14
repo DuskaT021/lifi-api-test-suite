@@ -41,6 +41,44 @@
         "key": "fromAmount",
         "value": "1000000",
         "description": "1 USDC (6 decimals)"
+      },
+      {
+        "key": "order",
+        "value": "RECOMMENDED"
+      },
+      {
+        "key": "expected2xxMaxMs",
+        "value": "10000"
+      },
+      {
+        "key": "expected4xxMaxMs",
+        "value": "10000"
+      },
+      {
+        "key": "requestUrl",
+        "value": ""
+      },
+      {
+        "key": "endpoint",
+        "value": ""
+      },
+      {
+        "key": "expectedStatusCsv",
+        "value": ""
+      }
+    ],
+    "event": [
+      {
+        "listen": "prerequest",
+        "script": {
+          "exec": [
+            "if (!pm.collectionVariables.get('helpersLoaded')) {",
+            "  pm.collectionVariables.set('helpersLoaded', 'true');",
+            "  pm.collectionVariables.set('helperAssertNo500Label', 'Does not return 500');",
+            "  pm.collectionVariables.set('helperErrorShapeLabel', 'Error response is object');",
+            "}"
+          ]
+        }
       }
     ],
     "item": [
@@ -1334,6 +1372,274 @@
                 }
               }
             ]
+          }
+        ]
+      },
+      {
+        "name": "Connections (/connections)",
+        "description": "Route availability between chain/token pairs",
+        "item": [
+          {
+            "name": "GET /connections — Polygon to Arbitrum",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                    "pm.test('Response is object', () => pm.expect(pm.response.json()).to.be.an('object'));",
+                    "pm.test('Response time < expected2xxMaxMs', () => pm.expect(pm.response.responseTime).to.be.below(parseInt(pm.collectionVariables.get('expected2xxMaxMs'), 10)));"
+                  ]
+                }
+              }
+            ],
+            "request": {
+              "method": "GET",
+              "url": {
+                "raw": "{{baseUrl}}/connections?fromChain={{fromChain}}&toChain={{toChain}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "connections"
+                ],
+                "query": [
+                  {
+                    "key": "fromChain",
+                    "value": "{{fromChain}}"
+                  },
+                  {
+                    "key": "toChain",
+                    "value": "{{toChain}}"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "GET /connections — invalid fromChain",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Returns 400 or 422', () => pm.expect([400, 422]).to.include(pm.response.code));",
+                    "pm.test('Does not return 500', () => pm.expect(pm.response.code).to.not.equal(500));"
+                  ]
+                }
+              }
+            ],
+            "request": {
+              "method": "GET",
+              "url": {
+                "raw": "{{baseUrl}}/connections?fromChain=INVALID&toChain={{toChain}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "connections"
+                ],
+                "query": [
+                  {
+                    "key": "fromChain",
+                    "value": "INVALID"
+                  },
+                  {
+                    "key": "toChain",
+                    "value": "{{toChain}}"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Chains (/chains)",
+        "description": "Chain metadata and filter behavior",
+        "item": [
+          {
+            "name": "GET /chains — all chains",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                    "pm.test('Has chains array', () => {",
+                    "  const json = pm.response.json();",
+                    "  const chains = json.chains || json;",
+                    "  pm.expect(chains).to.be.an('array').that.is.not.empty;",
+                    "});"
+                  ]
+                }
+              }
+            ],
+            "request": {
+              "method": "GET",
+              "url": {
+                "raw": "{{baseUrl}}/chains",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "chains"
+                ]
+              }
+            }
+          },
+          {
+            "name": "GET /chains — EVM filter",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                    "pm.test('Only EVM chainType', () => {",
+                    "  const json = pm.response.json();",
+                    "  const chains = json.chains || json;",
+                    "  chains.forEach(chain => pm.expect(chain.chainType).to.equal('EVM'));",
+                    "});"
+                  ]
+                }
+              }
+            ],
+            "request": {
+              "method": "GET",
+              "url": {
+                "raw": "{{baseUrl}}/chains?chainTypes=EVM",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "chains"
+                ],
+                "query": [
+                  {
+                    "key": "chainTypes",
+                    "value": "EVM"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Tools (/tools)",
+        "description": "Bridge/DEX availability and filtering",
+        "item": [
+          {
+            "name": "GET /tools — all tools",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                    "pm.test('Has bridges and exchanges', () => {",
+                    "  const json = pm.response.json();",
+                    "  pm.expect(json).to.have.property('bridges');",
+                    "  pm.expect(json).to.have.property('exchanges');",
+                    "  pm.expect(json.bridges).to.be.an('array');",
+                    "  pm.expect(json.exchanges).to.be.an('array');",
+                    "});"
+                  ]
+                }
+              }
+            ],
+            "request": {
+              "method": "GET",
+              "url": {
+                "raw": "{{baseUrl}}/tools",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "tools"
+                ]
+              }
+            }
+          },
+          {
+            "name": "GET /tools — chain filter",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                    "pm.test('Has bridges and exchanges', () => {",
+                    "  const json = pm.response.json();",
+                    "  pm.expect(json.bridges).to.be.an('array');",
+                    "  pm.expect(json.exchanges).to.be.an('array');",
+                    "});"
+                  ]
+                }
+              }
+            ],
+            "request": {
+              "method": "GET",
+              "url": {
+                "raw": "{{baseUrl}}/tools?chains={{fromChain}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "tools"
+                ],
+                "query": [
+                  {
+                    "key": "chains",
+                    "value": "{{fromChain}}"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Agentic Scenarios",
+        "description": "Runner/Newman iteration-data driven scenarios generated from mcp/generated-scenarios.json",
+        "item": [
+          {
+            "name": "GET dynamic endpoint from iteration data",
+            "event": [
+              {
+                "listen": "prerequest",
+                "script": {
+                  "exec": [
+                    "const requestUrl = pm.iterationData.get('requestUrl') || pm.collectionVariables.get('requestUrl');",
+                    "if (!requestUrl) {",
+                    "  throw new Error('Missing requestUrl in iteration data');",
+                    "}",
+                    "pm.variables.set('requestUrl', requestUrl);"
+                  ]
+                }
+              },
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "const statusCsv = pm.iterationData.get('expectedStatusCsv') || pm.collectionVariables.get('expectedStatusCsv') || '200';",
+                    "const allowed = statusCsv.split(',').map(v => parseInt(v.trim(), 10)).filter(v => !Number.isNaN(v));",
+                    "pm.test('Status in expectedStatusCsv', () => pm.expect(allowed).to.include(pm.response.code));",
+                    "pm.test('Does not return 500', () => pm.expect(pm.response.code).to.not.equal(500));"
+                  ]
+                }
+              }
+            ],
+            "request": {
+              "method": "GET",
+              "url": {
+                "raw": "{{requestUrl}}",
+                "host": [
+                  "{{requestUrl}}"
+                ]
+              }
+            }
           }
         ]
       }

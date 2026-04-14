@@ -1,0 +1,146 @@
+[
+  {
+    "name": "USDC Polygon to Arbitrum standard swap",
+    "endpoint": "/quote",
+    "requestUrl": "https://li.quest/v1/quote?fromChain=137&toChain=42161&fromToken=USDC&toToken=USDC&fromAddress=0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0&fromAmount=1000000",
+    "expectedStatusCsv": "200",
+    "expectedBehaviour": "valid_route",
+    "notes": "Standard stablecoin bridge between two major L2s — should always find a route"
+  },
+  {
+    "name": "Micro amount cross-chain USDC swap",
+    "endpoint": "/quote",
+    "requestUrl": "https://li.quest/v1/quote?fromChain=1&toChain=137&fromToken=USDC&toToken=USDC&fromAddress=0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0&fromAmount=1",
+    "expectedStatusCsv": "200,400,404",
+    "expectedBehaviour": "no_route",
+    "notes": "0.000001 USDC is likely below the gas cost threshold — route may be unavailable"
+  },
+  {
+    "name": "Same chain ETH to USDT on Ethereum",
+    "endpoint": "/quote",
+    "requestUrl": "https://li.quest/v1/quote?fromChain=1&toChain=1&fromToken=0x0000000000000000000000000000000000000000&toToken=USDT&fromAddress=0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0&fromAmount=500000000000000000",
+    "expectedStatusCsv": "200",
+    "expectedBehaviour": "valid_route",
+    "notes": "Same-chain swap uses DEX aggregation rather than bridging — always a valid path"
+  },
+  {
+    "name": "Native BNB to ETH cross-ecosystem",
+    "endpoint": "/quote",
+    "requestUrl": "https://li.quest/v1/quote?fromChain=56&toChain=1&fromToken=BNB&toToken=0x0000000000000000000000000000000000000000&fromAddress=0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0&fromAmount=2000000000000000000",
+    "expectedStatusCsv": "200,404",
+    "expectedBehaviour": "valid_route",
+    "notes": "Native-to-native swap across BSC and Ethereum ecosystems"
+  },
+  {
+    "name": "Quote with unknown chain ID",
+    "endpoint": "/quote",
+    "requestUrl": "https://li.quest/v1/quote?fromChain=99999&toChain=42161&fromToken=USDC&toToken=USDC&fromAddress=0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0&fromAmount=1000000",
+    "expectedStatusCsv": "400,422",
+    "expectedBehaviour": "error",
+    "notes": "Chain ID 99999 does not exist — should return a client error, never a 500"
+  },
+  {
+    "name": "Quote with malformed fromToken",
+    "endpoint": "/quote",
+    "requestUrl": "https://li.quest/v1/quote?fromChain=137&toChain=42161&fromToken=NOT_A_TOKEN&toToken=USDC&fromAddress=0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0&fromAmount=1000000",
+    "expectedStatusCsv": "400,404,422",
+    "expectedBehaviour": "error",
+    "notes": "Unrecognised token symbol should be rejected cleanly without a 500"
+  },
+  {
+    "name": "Stablecoin to native ETH across L2s",
+    "endpoint": "/quote",
+    "requestUrl": "https://li.quest/v1/quote?fromChain=42161&toChain=10&fromToken=USDC&toToken=0x0000000000000000000000000000000000000000&fromAddress=0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0&fromAmount=1000000000",
+    "expectedStatusCsv": "200,404",
+    "expectedBehaviour": "valid_route",
+    "notes": "Arbitrum USDC to Optimism native ETH — L2-to-L2 cross-chain with token conversion"
+  },
+  {
+    "name": "Base to Avalanche USDC to AVAX",
+    "endpoint": "/quote",
+    "requestUrl": "https://li.quest/v1/quote?fromChain=8453&toChain=43114&fromToken=USDC&toToken=AVAX&fromAddress=0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0&fromAmount=50000000",
+    "expectedStatusCsv": "200,404",
+    "expectedBehaviour": "valid_route",
+    "notes": "Newer chain (Base) to established chain (Avalanche) with native token output"
+  },
+  {
+    "name": "Connections Polygon to Arbitrum",
+    "endpoint": "/connections",
+    "requestUrl": "https://li.quest/v1/connections?fromChain=137&toChain=42161",
+    "expectedStatusCsv": "200",
+    "expectedBehaviour": "valid_route",
+    "notes": "Standard connection check between two widely used L2s"
+  },
+  {
+    "name": "Connections with token filter",
+    "endpoint": "/connections",
+    "requestUrl": "https://li.quest/v1/connections?fromChain=137&toChain=42161&fromToken=USDC",
+    "expectedStatusCsv": "200",
+    "expectedBehaviour": "valid_route",
+    "notes": "Filtering connections by source token should narrow the result set without errors"
+  },
+  {
+    "name": "Connections same chain",
+    "endpoint": "/connections",
+    "requestUrl": "https://li.quest/v1/connections?fromChain=137&toChain=137",
+    "expectedStatusCsv": "200,400",
+    "expectedBehaviour": "valid_route",
+    "notes": "Same-chain connections are valid for DEX aggregation paths"
+  },
+  {
+    "name": "Connections with invalid fromChain",
+    "endpoint": "/connections",
+    "requestUrl": "https://li.quest/v1/connections?fromChain=INVALID&toChain=42161",
+    "expectedStatusCsv": "400,422",
+    "expectedBehaviour": "error",
+    "notes": "Non-numeric chain ID should be rejected cleanly, never a 500"
+  },
+  {
+    "name": "Tokens for Polygon chain",
+    "endpoint": "/tokens",
+    "requestUrl": "https://li.quest/v1/tokens?chains=137",
+    "expectedStatusCsv": "200",
+    "expectedBehaviour": "valid_route",
+    "notes": "Fetch token list filtered to Polygon — should return a non-empty token map"
+  },
+  {
+    "name": "Tokens for unknown chain ID",
+    "endpoint": "/tokens",
+    "requestUrl": "https://li.quest/v1/tokens?chains=99999",
+    "expectedStatusCsv": "200,400",
+    "expectedBehaviour": "error",
+    "notes": "Filtering tokens by a non-existent chain should return empty results or a client error — never a 500"
+  },
+  {
+    "name": "All chains",
+    "endpoint": "/chains",
+    "requestUrl": "https://li.quest/v1/chains",
+    "expectedStatusCsv": "200",
+    "expectedBehaviour": "valid_route",
+    "notes": "Fetch all supported chains — should return a non-empty array with valid chain objects"
+  },
+  {
+    "name": "Chains filtered by EVM chainType",
+    "endpoint": "/chains",
+    "requestUrl": "https://li.quest/v1/chains?chainTypes=EVM",
+    "expectedStatusCsv": "200",
+    "expectedBehaviour": "valid_route",
+    "notes": "Filtering chains by chainType=EVM should return only EVM-compatible chains"
+  },
+  {
+    "name": "All tools",
+    "endpoint": "/tools",
+    "requestUrl": "https://li.quest/v1/tools",
+    "expectedStatusCsv": "200",
+    "expectedBehaviour": "valid_route",
+    "notes": "Fetch all bridges and DEX aggregators — should return non-empty bridges and exchanges arrays"
+  },
+  {
+    "name": "Tools filtered by Polygon chain",
+    "endpoint": "/tools",
+    "requestUrl": "https://li.quest/v1/tools?chains=137",
+    "expectedStatusCsv": "200",
+    "expectedBehaviour": "valid_route",
+    "notes": "Filtering tools by chain should return a subset of bridges and exchanges that support Polygon"
+  }
+]

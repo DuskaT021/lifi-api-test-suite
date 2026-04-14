@@ -9,7 +9,8 @@
  *   node scripts/newman-run.js
  *   node scripts/newman-run.js --collection quote          # quote folder only
  *   node scripts/newman-run.js --bail                      # stop on first failure
- *   node scripts/newman-run.js --env staging               # use staging environment
+ *   node scripts/newman-run.js --env=staging               # use staging environment
+ *   node scripts/newman-run.js --iteration-data=postman/data/agentic-scenarios.postman_data.json
  *
  * Exit codes:
  *   0 = all tests passed
@@ -26,6 +27,7 @@ const args = process.argv.slice(2);
 const bail = args.includes('--bail');
 const envArg = args.find(a => a.startsWith('--env='))?.split('=')[1] ?? 'production';
 const folderArg = args.find(a => a.startsWith('--collection='))?.split('=')[1];
+const iterationDataArg = args.find(a => a.startsWith('--iteration-data='))?.split('=')[1];
 
 // -- Paths -------------------------------------------------------------------
 
@@ -34,7 +36,7 @@ const COLLECTION = path.join(ROOT, 'postman/collections/lifi_full_suite.postman_
 const ENVIRONMENT = path.join(ROOT, `postman/environments/${envArg}.postman_environment.json`);
 const REPORT_DIR = path.join(ROOT, 'newman-reports');
 const REPORT_JSON = path.join(REPORT_DIR, `report-${Date.now()}.json`);
-const REPORT_HTML = path.join(REPORT_DIR, `report-${Date.now()}.html`);
+const ITERATION_DATA = iterationDataArg ? path.join(ROOT, iterationDataArg) : null;
 
 if (!fs.existsSync(COLLECTION)) {
   console.error(`Collection not found: ${COLLECTION}`);
@@ -44,6 +46,24 @@ if (!fs.existsSync(COLLECTION)) {
 if (!fs.existsSync(ENVIRONMENT)) {
   console.error(`Environment not found: ${ENVIRONMENT}`);
   process.exit(1);
+}
+
+if (ITERATION_DATA && !fs.existsSync(ITERATION_DATA)) {
+  console.error(`Iteration data not found: ${ITERATION_DATA}`);
+  process.exit(1);
+}
+
+try {
+  const envJson = JSON.parse(fs.readFileSync(ENVIRONMENT, 'utf8'));
+  const baseUrlValue = envJson?.values?.find(v => v.key === 'baseUrl')?.value;
+  if (typeof baseUrlValue === 'string' && baseUrlValue.includes('staging.li.quest')) {
+    console.warn(
+      '\nWarning: staging environment uses a placeholder baseUrl. ' +
+      'Replace it when real staging access is available.\n'
+    );
+  }
+} catch (err) {
+  console.warn(`Could not inspect environment file: ${err instanceof Error ? err.message : String(err)}`);
 }
 
 fs.mkdirSync(REPORT_DIR, { recursive: true });
@@ -69,6 +89,11 @@ if (folderArg) {
   console.log(`\nRunning folder: "${folderArg}"\n`);
 } else {
   console.log('\nRunning full LI.FI suite\n');
+}
+
+if (ITERATION_DATA) {
+  options.iterationData = ITERATION_DATA;
+  console.log(`Using iteration data: ${ITERATION_DATA}`);
 }
 
 // -- Run ---------------------------------------------------------------------
