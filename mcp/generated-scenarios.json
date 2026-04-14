@@ -163,5 +163,61 @@
     "expectedStatus": [400, 422],
     "expectedBehaviour": "error",
     "notes": "Non-numeric chain ID should be rejected cleanly, never a 500"
+  },
+  {
+    "name": "Tokens for Polygon chain",
+    "endpoint": "/tokens",
+    "params": {
+      "chains": "137"
+    },
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Fetch token list filtered to Polygon — should return a non-empty token map"
+  },
+  {
+    "name": "Tokens for unknown chain ID",
+    "endpoint": "/tokens",
+    "params": {
+      "chains": "99999"
+    },
+    "expectedStatus": [200, 400],
+    "expectedBehaviour": "error",
+    "notes": "Filtering tokens by a non-existent chain should return empty results or a client error — never a 500"
+  },
+  {
+    "name": "All chains",
+    "endpoint": "/chains",
+    "params": {},
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Fetch all supported chains — should return a non-empty array with valid chain objects"
+  },
+  {
+    "name": "Chains filtered by EVM chainType",
+    "endpoint": "/chains",
+    "params": {
+      "chainTypes": "EVM"
+    },
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Filtering chains by chainType=EVM should return only EVM-compatible chains"
+  },
+  {
+    "name": "All tools",
+    "endpoint": "/tools",
+    "params": {},
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Fetch all bridges and DEX aggregators — should return non-empty bridges and exchanges arrays"
+  },
+  {
+    "name": "Tools filtered by Polygon chain",
+    "endpoint": "/tools",
+    "params": {
+      "chains": "137"
+    },
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Filtering tools by chain should return a subset of bridges and exchanges that support Polygon"
   }
 ]

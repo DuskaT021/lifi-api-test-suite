@@ -220,4 +220,9 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+// Only run when invoked directly (npx ts-node mcp/mcp-test-scenarios.ts).
+// Guarded so that importing this module for types/validation in tests
+// does not trigger LLM calls or file writes.
+if (require.main === module) {
+  main().catch(console.error);
+}
