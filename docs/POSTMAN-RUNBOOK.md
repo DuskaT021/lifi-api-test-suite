@@ -1,6 +1,8 @@
 # Postman Runbook
 
 Use this runbook to demo the Postman/Newman layer quickly and consistently.
+Important: `Agentic Scenarios` is iteration-data driven and must be run via
+Postman Runner (or Newman) with `postman/data/agentic-scenarios.postman_data.json`.
 
 ## 1) Production smoke run
 

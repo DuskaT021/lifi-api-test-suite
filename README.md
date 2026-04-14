@@ -144,6 +144,14 @@ cp .env.example .env
 
 For a fast demo flow, see `docs/POSTMAN-RUNBOOK.md`.
 
+### Postman UI quick start
+
+1. Import `postman/collections/lifi_full_suite.postman_collection.json`.
+2. Import `postman/environments/production.postman_environment.json`.
+3. Select environment `LI.FI Production`.
+4. Run folder `Connections (/connections)` in Postman Runner.
+5. For `Agentic Scenarios`, run via Runner with data file `postman/data/agentic-scenarios.postman_data.json`.
+
 ```bash
 # All Playwright tests
 npm test
