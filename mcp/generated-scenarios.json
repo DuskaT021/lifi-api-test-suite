@@ -1,82 +1,223 @@
 [
   {
-    "name": "Micro amount cross-chain USDC swap",
-    "fromChain": "1",
-    "toChain": "137",
-    "fromToken": "USDC",
-    "toToken": "USDC",
-    "fromAmount": "1",
-    "expectedBehaviour": "no_route",
-    "reason": "Testing minimum viable amount (0.000001 USDC) - likely below gas cost threshold"
+    "name": "USDC Polygon to Arbitrum standard swap",
+    "endpoint": "/quote",
+    "params": {
+      "fromChain": "137",
+      "toChain": "42161",
+      "fromToken": "USDC",
+      "toToken": "USDC",
+      "fromAddress": "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0",
+      "fromAmount": "1000000"
+    },
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Standard stablecoin bridge between two major L2s — should always find a route"
   },
   {
-    "name": "Whale swap ETH to BNB cross-ecosystem",
-    "fromChain": "1",
-    "toChain": "56",
-    "fromToken": "0x0000000000000000000000000000000000000000",
-    "toToken": "BNB",
-    "fromAmount": "10000000000000000000000",
-    "expectedBehaviour": "valid_route",
-    "reason": "Large amount (10,000 ETH) cross-ecosystem swap testing liquidity limits"
+    "name": "Micro amount cross-chain USDC swap",
+    "endpoint": "/quote",
+    "params": {
+      "fromChain": "1",
+      "toChain": "137",
+      "fromToken": "USDC",
+      "toToken": "USDC",
+      "fromAddress": "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0",
+      "fromAmount": "1"
+    },
+    "expectedStatus": [200, 400, 404],
+    "expectedBehaviour": "no_route",
+    "notes": "0.000001 USDC is likely below the gas cost threshold — route may be unavailable"
   },
   {
     "name": "Same chain ETH to USDT on Ethereum",
-    "fromChain": "1",
-    "toChain": "1",
-    "fromToken": "0x0000000000000000000000000000000000000000",
-    "toToken": "USDT",
-    "fromAmount": "500000000000000000",
+    "endpoint": "/quote",
+    "params": {
+      "fromChain": "1",
+      "toChain": "1",
+      "fromToken": "0x0000000000000000000000000000000000000000",
+      "toToken": "USDT",
+      "fromAddress": "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0",
+      "fromAmount": "500000000000000000"
+    },
+    "expectedStatus": [200],
     "expectedBehaviour": "valid_route",
-    "reason": "Same-chain swap should use DEX aggregation rather than bridging"
-  },
-  {
-    "name": "Stablecoin to native token on L2",
-    "fromChain": "42161",
-    "toChain": "10",
-    "fromToken": "USDC",
-    "toToken": "0x0000000000000000000000000000000000000000",
-    "fromAmount": "1000000000",
-    "expectedBehaviour": "valid_route",
-    "reason": "L2 to L2 swap with stablecoin to native ETH conversion"
-  },
-  {
-    "name": "Exotic chain pair Base to Avalanche",
-    "fromChain": "8453",
-    "toChain": "43114",
-    "fromToken": "USDC",
-    "toToken": "AVAX",
-    "fromAmount": "50000000",
-    "expectedBehaviour": "valid_route",
-    "reason": "Testing routing between newer chain (Base) and established chain (Avalanche)"
-  },
-  {
-    "name": "DAI to MATIC cross-chain small amount",
-    "fromChain": "1",
-    "toChain": "137",
-    "fromToken": "DAI",
-    "toToken": "MATIC",
-    "fromAmount": "5000000000000000000",
-    "expectedBehaviour": "valid_route",
-    "reason": "Testing non-USDC stablecoin to native token conversion across chains"
-  },
-  {
-    "name": "Ultra high value USDT swap BSC to Arbitrum",
-    "fromChain": "56",
-    "toChain": "42161",
-    "fromToken": "USDT",
-    "toToken": "USDC",
-    "fromAmount": "100000000000000",
-    "expectedBehaviour": "no_route",
-    "reason": "Extremely large amount (100M USDT) testing maximum swap limits and liquidity"
+    "notes": "Same-chain swap uses DEX aggregation rather than bridging — always a valid path"
   },
   {
     "name": "Native BNB to ETH cross-ecosystem",
-    "fromChain": "56",
-    "toChain": "1",
-    "fromToken": "BNB",
-    "toToken": "0x0000000000000000000000000000000000000000",
-    "fromAmount": "2000000000000000000",
+    "endpoint": "/quote",
+    "params": {
+      "fromChain": "56",
+      "toChain": "1",
+      "fromToken": "BNB",
+      "toToken": "0x0000000000000000000000000000000000000000",
+      "fromAddress": "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0",
+      "fromAmount": "2000000000000000000"
+    },
+    "expectedStatus": [200, 404],
     "expectedBehaviour": "valid_route",
-    "reason": "Native to native token swap across different blockchain ecosystems"
+    "notes": "Native-to-native swap across BSC and Ethereum ecosystems"
+  },
+  {
+    "name": "Quote with unknown chain ID",
+    "endpoint": "/quote",
+    "params": {
+      "fromChain": "99999",
+      "toChain": "42161",
+      "fromToken": "USDC",
+      "toToken": "USDC",
+      "fromAddress": "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0",
+      "fromAmount": "1000000"
+    },
+    "expectedStatus": [400, 422],
+    "expectedBehaviour": "error",
+    "notes": "Chain ID 99999 does not exist — should return a client error, never a 500"
+  },
+  {
+    "name": "Quote with malformed fromToken",
+    "endpoint": "/quote",
+    "params": {
+      "fromChain": "137",
+      "toChain": "42161",
+      "fromToken": "NOT_A_TOKEN",
+      "toToken": "USDC",
+      "fromAddress": "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0",
+      "fromAmount": "1000000"
+    },
+    "expectedStatus": [400, 404, 422],
+    "expectedBehaviour": "error",
+    "notes": "Unrecognised token symbol should be rejected cleanly without a 500"
+  },
+  {
+    "name": "Stablecoin to native ETH across L2s",
+    "endpoint": "/quote",
+    "params": {
+      "fromChain": "42161",
+      "toChain": "10",
+      "fromToken": "USDC",
+      "toToken": "0x0000000000000000000000000000000000000000",
+      "fromAddress": "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0",
+      "fromAmount": "1000000000"
+    },
+    "expectedStatus": [200, 404],
+    "expectedBehaviour": "valid_route",
+    "notes": "Arbitrum USDC to Optimism native ETH — L2-to-L2 cross-chain with token conversion"
+  },
+  {
+    "name": "Base to Avalanche USDC to AVAX",
+    "endpoint": "/quote",
+    "params": {
+      "fromChain": "8453",
+      "toChain": "43114",
+      "fromToken": "USDC",
+      "toToken": "AVAX",
+      "fromAddress": "0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0",
+      "fromAmount": "50000000"
+    },
+    "expectedStatus": [200, 404],
+    "expectedBehaviour": "valid_route",
+    "notes": "Newer chain (Base) to established chain (Avalanche) with native token output"
+  },
+  {
+    "name": "Connections Polygon to Arbitrum",
+    "endpoint": "/connections",
+    "params": {
+      "fromChain": "137",
+      "toChain": "42161"
+    },
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Standard connection check between two widely used L2s"
+  },
+  {
+    "name": "Connections with token filter",
+    "endpoint": "/connections",
+    "params": {
+      "fromChain": "137",
+      "toChain": "42161",
+      "fromToken": "USDC"
+    },
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Filtering connections by source token should narrow the result set without errors"
+  },
+  {
+    "name": "Connections same chain",
+    "endpoint": "/connections",
+    "params": {
+      "fromChain": "137",
+      "toChain": "137"
+    },
+    "expectedStatus": [200, 400],
+    "expectedBehaviour": "valid_route",
+    "notes": "Same-chain connections are valid for DEX aggregation paths"
+  },
+  {
+    "name": "Connections with invalid fromChain",
+    "endpoint": "/connections",
+    "params": {
+      "fromChain": "INVALID",
+      "toChain": "42161"
+    },
+    "expectedStatus": [400, 422],
+    "expectedBehaviour": "error",
+    "notes": "Non-numeric chain ID should be rejected cleanly, never a 500"
+  },
+  {
+    "name": "Tokens for Polygon chain",
+    "endpoint": "/tokens",
+    "params": {
+      "chains": "137"
+    },
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Fetch token list filtered to Polygon — should return a non-empty token map"
+  },
+  {
+    "name": "Tokens for unknown chain ID",
+    "endpoint": "/tokens",
+    "params": {
+      "chains": "99999"
+    },
+    "expectedStatus": [200, 400],
+    "expectedBehaviour": "error",
+    "notes": "Filtering tokens by a non-existent chain should return empty results or a client error — never a 500"
+  },
+  {
+    "name": "All chains",
+    "endpoint": "/chains",
+    "params": {},
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Fetch all supported chains — should return a non-empty array with valid chain objects"
+  },
+  {
+    "name": "Chains filtered by EVM chainType",
+    "endpoint": "/chains",
+    "params": {
+      "chainTypes": "EVM"
+    },
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Filtering chains by chainType=EVM should return only EVM-compatible chains"
+  },
+  {
+    "name": "All tools",
+    "endpoint": "/tools",
+    "params": {},
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Fetch all bridges and DEX aggregators — should return non-empty bridges and exchanges arrays"
+  },
+  {
+    "name": "Tools filtered by Polygon chain",
+    "endpoint": "/tools",
+    "params": {
+      "chains": "137"
+    },
+    "expectedStatus": [200],
+    "expectedBehaviour": "valid_route",
+    "notes": "Filtering tools by chain should return a subset of bridges and exchanges that support Polygon"
   }
 ]

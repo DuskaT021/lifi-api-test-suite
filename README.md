@@ -75,16 +75,34 @@ To connect LI.FI's MCP server to Claude Desktop, add to your config:
 
 ## AI-assisted test scenario generation
 
-`mcp/mcp-test-scenarios.ts` uses Claude to generate diverse edge case scenarios
-for the `/quote` endpoint — unusual chain pairs, cross-ecosystem swaps, extreme
-amounts, and more.
+`mcp/mcp-test-scenarios.ts` uses an LLM (Claude by default) to generate diverse
+edge case test scenarios across multiple endpoints — `/quote`, `/connections`,
+`/tokens`, `/chains`, and `/tools`.
 
 ```bash
 npm run scenarios
 ```
 
-Output is saved to `mcp/generated-scenarios.json` and can be imported
-into the Playwright test suite. Requires `ANTHROPIC_API_KEY` in `.env`.
+Output is saved to `mcp/generated-scenarios.json`. The Playwright test suite
+consumes these scenarios automatically via
+`playwright/helpers/agentic-scenarios.ts` → `getAgentScenarios(endpoint)`:
+
+- `quote.spec.ts` — loads `/quote` scenarios (positive + negative + edge cases)
+- `connections.spec.ts` — loads `/connections` scenarios
+
+**Deterministic fallback:** if the JSON file is missing or the LLM call fails,
+the tests skip the agentic block gracefully — the deterministic suite still runs.
+To regenerate scenarios, set `ANTHROPIC_API_KEY` in `.env` and run
+`npm run scenarios`.
+
+Each generated scenario includes:
+| Field | Description |
+|-------|-------------|
+| `endpoint` | Target API path, e.g. `/quote` |
+| `params` | Query parameters passed to the endpoint |
+| `expectedStatus` | Allowed HTTP status codes |
+| `expectedBehaviour` | `valid_route \| no_route \| error \| schema_violation` |
+| `notes` | Why this scenario is an interesting edge case |
 
 <p align="center">
   <video src="https://github.com/user-attachments/assets/350adddb-7990-4c81-8bbf-77f2a0227414" width="80%" controls></video>
@@ -167,6 +185,7 @@ lifi-api-test-suite/
 │   └── helpers/
 │       ├── api-client.ts       # Centralised client with caching + type definitions
 │       ├── assertions.ts       # Shared custom assertions
+│       ├── agentic-scenarios.ts # Loader for AI-generated scenario JSON
 │       └── test-data.ts        # Chain IDs, token addresses, test wallets
 ├── postman/
 │   ├── collections/
