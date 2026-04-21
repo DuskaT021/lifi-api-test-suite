@@ -95,6 +95,16 @@ the tests skip the agentic block gracefully — the deterministic suite still ru
 To regenerate scenarios, set `ANTHROPIC_API_KEY` in `.env` and run
 `npm run scenarios`.
 
+Postman/Newman can run the same generated scenarios by first producing iteration
+data and then running the `Agentic Scenarios` folder:
+
+```bash
+npm run postman:data:agentic
+npm run test:postman:agentic
+```
+
+This keeps AI-driven tests deterministic in CI by using checked-in JSON inputs.
+
 Each generated scenario includes:
 | Field | Description |
 |-------|-------------|
@@ -132,6 +142,16 @@ cp .env.example .env
 
 ## Running tests
 
+For a fast demo flow, see `docs/POSTMAN-RUNBOOK.md`.
+
+### Postman UI quick start
+
+1. Import `postman/collections/lifi_full_suite.postman_collection.json`.
+2. Import `postman/environments/production.postman_environment.json`.
+3. Select environment `LI.FI Production`.
+4. Run folder `Connections (/connections)` in Postman Runner.
+5. For `Agentic Scenarios`, run via Runner with data file `postman/data/agentic-scenarios.postman_data.json`.
+
 ```bash
 # All Playwright tests
 npm test
@@ -145,9 +165,17 @@ npm run test:mcp
 # Postman collections via Newman
 npm run test:postman
 npm run test:postman:quote
+npm run test:postman:connections
+npm run test:postman:chains
+npm run test:postman:tools
 
 # AI scenario generation
 npm run scenarios
+npm run postman:data:agentic
+npm run test:postman:agentic
+
+# Staging environment (placeholder URL by default)
+node scripts/newman-run.js --env=staging
 
 # Type-check without running tests
 npx tsc --noEmit
@@ -189,12 +217,14 @@ lifi-api-test-suite/
 │       └── test-data.ts        # Chain IDs, token addresses, test wallets
 ├── postman/
 │   ├── collections/
-│   └── environments/
+│   ├── environments/
+│   └── data/
 ├── mcp/
 │   ├── mcp-test-scenarios.ts   # AI-assisted scenario generator
 │   └── generated-scenarios.json
 ├── scripts/
-│   └── newman-run.js           # Newman CLI runner
+│   ├── newman-run.js           # Newman CLI runner
+│   └── generate-postman-agentic-data.js
 ├── .github/workflows/
 │   └── api-tests.yml
 ├── .vscode/

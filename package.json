@@ -12,6 +12,11 @@
     "test:postman": "node scripts/newman-run.js",
     "test:postman:bail": "node scripts/newman-run.js --bail",
     "test:postman:quote": "node scripts/newman-run.js --collection=quote",
+    "test:postman:connections": "node scripts/newman-run.js --collection=\"Connections (/connections)\"",
+    "test:postman:chains": "node scripts/newman-run.js --collection=\"Chains (/chains)\"",
+    "test:postman:tools": "node scripts/newman-run.js --collection=\"Tools (/tools)\"",
+    "postman:data:agentic": "node scripts/generate-postman-agentic-data.js",
+    "test:postman:agentic": "node scripts/newman-run.js --collection=\"Agentic Scenarios\" --iteration-data=postman/data/agentic-scenarios.postman_data.json",
     "scenarios": "ts-node mcp/mcp-test-scenarios.ts",
     "report": "playwright show-report"
   },
